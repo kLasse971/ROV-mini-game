@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>ROV mini-game</title>
+  <style>
+    *{
+        box-sizing: border-box;
+    }
+
+    body {
+      margin: 4;
+      background: #1e1e1e;
+      color: white;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    .main-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 20px; /* gir litt avstand mellom canvas og grafer */
+        padding: 20px;
+        width: 2000px;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .clock-and-stonks {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .clock-and-controls{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .canvas {
+        flex: 1; 
+        display: block;
+        margin: 0 auto;
+        background: #000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .canvas canvas {
+        width: 90%;
+        height: 90%;
+    }
+    
+    .canvas-wrapper {
+      /* width: 90%%; */
+      /* max-width: 1020px; */
+      aspect-ratio: 1020 / 620;
+      position: relative;
+      border: 10px solid #222;
+      box-shadow: 0 0 30px #0ff;
+      gap: 20px;
+    }
+
+    .scanlines {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        transparent,
+        transparent,
+        rgba(0, 255, 255, 0.219) 4px
+      );
+      pointer-events: none;
+    }
+
+    .graphs1 {
+        width: 400;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        overflow-y: auto;
+        flex-direction: column;
+        align-items: center;
+        /* min-width: 250px; */
+    }
+
+    .graphs2 {
+        width: 400;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        overflow-y: auto;
+        flex-direction: column;
+        align-items: center;
+        /* min-width: 250px; */
+    }
+
+    .graph {
+      background: #111;
+      padding: 5px;
+      margin: 5px;
+      border: 2px solid #0ff;
+      box-shadow: 0 0 10px #0ff;
+    }
+
+    .økonomigrafs {
+        width: 400;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: left;
+        gap: 10px;
+        overflow-y: auto;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .graph-title {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #0ff;
+        text-align: center;
+    }
+
+    @keyframes blinkRed {
+      0% { background-color: rgba(255, 0, 0, 0.2); }
+      50% { background-color: transparent; }
+      100% { background-color: rgba(255, 0, 0, 0.2); }
+    }
+
+    #survivalTimer {
+      width: 150px;
+      height: 60px;
+      padding: 10px;
+      background-color: black;
+      border: 3px solid limegreen;
+      color: limegreen;
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 0 10px limegreen;
+    }
+
+    .kontrollboks {
+    background-color: #000;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 15px #0ff;
+    padding: 20px;
+    max-width: 300px;
+    font-family: 'Courier New', monospace;
+    color: #0ff;
+    border-radius: 10px;
+    margin-top: 20px;
+  }
+
+  .kontroll-tittel {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    text-shadow: 0 0 5px #0ff;
+  }
+
+  .kontroll-liste {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .kontroll-liste li {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .tast {
+    background-color: #111;
+    border: 1px solid #0ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    box-shadow: 0 0 5px #0ff;
+    font-weight: bold;
+  }
+
+  #spillskjerm {
+    transform-origin: top left;
+    scale: 1; /* standard */
+  }
+
+  </style>
+</head>
+
+<body>
+  <div id="spillskjerm">
+    <div class="main-container">
+      <div class="container">
+        <div class="canvas-wrapper">
+          <canvas id="gameCanvas" width="1000" height="600"></canvas>
+          <div class="scanlines"></div>
+        </div>
+        <div class="clock-and-stonks">
+          <div class="clock-and-controls">
+            <div id="survivalTimer">00:00</div>
+            <div class="kontrollboks">
+              <div class="kontroll-tittel">🔧 CONTROLS</div>
+              <ul class="kontroll-liste">
+                <li><span class="tast">WASD</span> – ROV</li>
+                <li><span class="tast">IJKL</span> – Left arm</li>
+                <li><span class="tast">ARROWS</span> – Right arm</li>
+                <li><span class="tast">G/R</span> – Left claw</li>
+                <li><span class="tast">SPACE + X/C</span> – Right claw</li>
+                <!-- <li><span class="tast">E</span> – Opp</li>
+                <li><span class="tast">Mellomrom</span> – Stabiliser</li> -->
+              </ul>
+            </div>
+          </div>
+          <div class="økonomigrafs">
+            <canvas id="økonomigraf" width="500" height="200" class="graph"></canvas>
+            <div class="graph-title">STONKS</div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="graphs1">
+          <div class="graph-title">PMV</div>
+          <canvas id="graph0" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">PWV</div>
+          <canvas id="graph1" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">XOV</div>
+          <canvas id="graph2" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">SIV</div>
+          <canvas id="graph3" width="250" height="100" class="graph"></canvas>
+
+      </div>
+      <div class="graphs2">
+          <div class="graph-title">SIT</div>
+          <canvas id="graph4" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">ASV</div>
+          <canvas id="graph5" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">AIV</div>
+          <canvas id="graph6" width="250" height="100" class="graph"></canvas>
+          <div class="graph-title">AVV</div>
+          <canvas id="graph7" width="250" height="100" class="graph"></canvas>
+
+
+      </div>
+    </div> 
+  </div>
+
+</body>
+</html>
+
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+
+// const bredde = window.innerWidth;
+// const høyde = window.innerHeight;
+
+// console.log("Bredde:", bredde, "Høyde:", høyde);
+
+const background = new Image();
+background.src = "background.png"; 
+const panel = new Image();
+panel.src = "panel2.png"; 
+const rovIm = new Image();
+rovIm.src = "rov2.png";
+const handle = new Image();
+handle.src = "handle.png";
+const template = new Image();
+template.src = "template.png";
+// const armRImage = new Image();
+// armRImage.src = "armR.png";
+// const armLImage = new Image();
+// armLImage.src = "armL.png";
+
+let canvasSize = 1;
+const rovSize = 180;
+let clawLen = 10  * canvasSize;
+let clawLX = 0;
+let clawLY = 0;
+let gameOver = false;
+let gameReallyOver = false;
+
+
+
+//const rov = { x: 0, y: 0 };
+const armR = { x: 50 * canvasSize, y: -50 * canvasSize, maxLength: 150 * canvasSize, rotation: 0 };
+const armL = { x: -50 * canvasSize, y: -50 * canvasSize, maxLength: 150 * canvasSize, rotation: 0 };
+const camera = { x: 0, y: 0 };
+
+// 9 ventiler med posisjoner
+const valves = [
+    { x: 278, y: 180, active: false, pressure: [400], rotation: 10, trend: 1 },
+    { x: 568, y: 420, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 278, y: 420, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 568, y: 180, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 722, y: 180, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 722, y: 420, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 567, y: 300, active: false, pressure: [400], rotation: 10, trend: 0 },
+    { x: 225, y: 300, active: false, pressure: [400], rotation: 10, trend: 0 },
+
+];
+
+valves.forEach(v => {
+    v.pressure[0] = 50;
+    v.x *= canvasSize;
+    v.y *= canvasSize;
+    v.scale = 1;
+});
+
+const gripAreas = [
+  { x: 195, y: 80, width: 20, height: 100 },
+  { x: 781, y: 80, width: 20, height: 100 },
+  { x: 195, y: 405, width: 20, height: 100 },
+  { x: 781, y: 405, width: 20, height: 100 },
+  { x: 395, y: 180, width: 20, height: 240 },
+  { x: 470, y: 257, width: 20, height: 80 }
+];
+
+gripAreas.forEach(g => {
+    g.x *= canvasSize;
+    g.y *= canvasSize;
+    g.width *= canvasSize;
+    g.height *= canvasSize;
+});
+
+
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+
+let clawROpen = 1; // 1 = helt åpen, 0 = helt lukket
+let clawLOpen = 1;
+let gassLekasje = 0;
+let fortjeneste = 100; // startverdi
+let current = 2;
+let valveWidth = 65;
+let valveHeight = 65;
+//let isGrippedBool = false;
+
+
+let currentOffsetX = 0;
+let currentOffsetY = 0;
+
+
+
+function update() {
+    // canvas.width = window.innerWidth/2.12;
+    // canvas.height = window.innerWidth/2.12*600/1000;
+
+    canvasSize = 1;
+    clawLen = 10 * canvasSize;
+    armR.maxLength = 150 * canvasSize;
+    armL.maxLength = 150 * canvasSize;
+
+    if(!isGripped()){
+        if (keys["w"]) camera.y -= 1;
+        if (keys["s"]) camera.y += 1 * canvasSize;
+        if (keys["a"]) camera.x -= 1 * canvasSize;
+        if (keys["d"]) camera.x += 1 * canvasSize;
+    }
+
+
+    //Høyre arm
+    let ax = armR.x;
+    let ay = armR.y;
+    if (keys["ArrowUp"]) ay -= 1;
+    if (keys["ArrowDown"]) ay += 1;
+    if (keys["ArrowLeft"]) ax -= 1;
+    if (keys["ArrowRight"]) ax += 1;
+
+    let armDist = Math.sqrt(ax*ax + ay*ay);
+    if (ax >= 0 && ay <= 0 && armDist < armR.maxLength) {
+        armR.x = ax;
+        armR.y = ay;
+    }
+
+    //Venstre arm
+    ax = armL.x;
+    ay = armL.y;
+    cx = camera.x;
+    cy = camera.y;
+    if (keys["i"]) ay -= 1, cy += 1;
+    if (keys["k"]) ay += 1, cy -= 1;
+    if (keys["j"]) ax -= 1, cx += 1;
+    if (keys["l"]) ax += 1, cx -= 1;
+
+    armDist = Math.sqrt(ax*ax + ay*ay);
+    if (ax <= 0 && ay <= 0 && armDist < armL.maxLength) {
+        if (clawLOpen > 0.2) {  //henger ikke fast
+            armL.x = ax;
+            armL.y = ay;
+        }
+        else {  // henger fast
+            armL.x = ax;
+            armL.y = ay;
+            camera.x = cx;
+            camera.y = cy;
+        }
+    }
+
+    valves.forEach(v => {
+        // const last = v.pressure[v.pressure.length - 1];
+        // const next = v.active ? Math.max(0, last - last/150 + Math.random() - 0.45) : Math.min(100, last + Math.random() - 0.45);
+        // v.pressure.push(next);
+        // if (v.pressure.length > 400) v.pressure.shift();
+        // createValveBubble(last, v.x, v.y) 
+
+        v.rotation +=  v.trend * 0.005 * Math.random();
+
+        const last = v.pressure[v.pressure.length - 1];
+
+        // Anta at v.rotation er mellom 0 (stengt) og 1 (åpen)
+        const openness = Math.max(0, Math.min(20, v.rotation)); // Sikrer at verdien er mellom 0 og 1
+
+        // Simuler trykkendring basert på hvor åpen ventilen er
+        const fluctuation = (Math.random() - 0.5) * 2; // tilfeldig verdi mellom -1 og 1
+        const targetPressure = openness * 5; // 100 er maks trykk
+
+        // Smooth overgang mot ønsket trykk
+        const next = last + (targetPressure - last) * 0.05 + fluctuation * 0.5;
+
+        v.pressure.push(Math.max(0, Math.min(100, next))); // begrens mellom 0 og 100
+        if (v.pressure.length > 400) v.pressure.shift();
+
+        if (next >= 100 && !gameOver) {
+          gameOver = true;
+          v.exploding = true; // flagg for animasjon
+        }
+
+        createValveBubble(last, v.x, v.y);
+    });
+
+
+    //strøm
+    currentOffsetX = (Math.sin(Date.now() / 500) * 0.2 + (Math.random() - 0.5) * 0.5)*current;
+    currentOffsetY = (Math.cos(Date.now() / 700) * 0.2 + (Math.random() - 0.5) * 0.5)*current;
+    if (!isGripped()){
+        camera.x += currentOffsetX
+        camera.y += currentOffsetY
+    }
+
+    roterVentilerMedROV();
+}
+
+function isGripped() {
+  return gripAreas.some(area => {
+    return (
+      clawLOpen == 0.1 &&
+      clawLX >= area.x - camera.x &&
+      clawLX <= area.x - camera.x + area.width &&
+      clawLY >= area.y - camera.y &&
+      clawLY <= area.y - camera.y + area.height 
+    );
+  });
+}
+
+
+function roterVentilerMedROV() {
+  const clawRX = (canvas.width / 2 + armR.x + 40) * canvasSize;
+  const clawRY = (canvas.height / 2 + armR.y) * canvasSize;
+
+  valves.forEach((v, i) => {
+    const dx = v.x - camera.x - clawRX ;
+    const dy = v.y - camera.y - clawRY + 15;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 10 * canvasSize && clawROpen < 0.2 && keys["c"]) {  //roter høyre
+      v.rotation += 0.05;
+      v.trend = 0;
+    } 
+
+    if (dist < 10 * canvasSize && clawROpen < 0.2 && keys["x"]) {  //roter venstre
+      v.rotation -= 0.05;
+      v.trend = 0;
+    } 
+
+    // Aktiver ventilen etter én hel runde
+    // if (v.rotation >= Math.PI * 2) {
+    //     v.active = true;
+    // }
+    // else {v.active = false}
+    
+  });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(background, -camera.x/2 - canvas.width, -camera.y/2 - canvas.height, canvas.width*3, canvas.height*3);
+    ctx.drawImage(template, -camera.x*0.8 - canvas.width*0.5, -camera.y*0.8 - canvas.height*0.5, canvas.width*2, canvas.height*2);
+    ctx.drawImage(panel, -camera.x + canvas.width*0.1, -camera.y + canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
+    
+
+    // // Tegn ventiler (håndtak)
+    // valves.forEach(v => {
+    //     const x = v.x - camera.x;
+    //     const y = v.y - camera.y;
+
+    //     ctx.save();
+    //     ctx.translate(x, y);
+    //     ctx.rotate(v.rotation);
+
+    //       // Risting hvis trykket er for høyt
+    //     const lastPressure = v.pressure[v.pressure.length - 1];
+    //     const threshold = 70; // juster etter behov
+    //     let shakeX = 0;
+    //     let shakeY = 0;
+
+    //     if (lastPressure > threshold) {
+    //       shakeX = (Math.random() - 0.5) * (lastPressure - 70) * 0.2; // ±2px
+    //       shakeY = (Math.random() - 0.5) * (lastPressure - 70) * 0.2;
+    //     }
+
+    //     // Juster posisjonen så bildet sentreres riktig
+    //     const imgWidth = 65;  // Sett til bredden på bildet
+    //     const imgHeight = 65; // Sett til høyden på bildet
+
+    //     ctx.drawImage(handle, -valveWidth / 2 + shakeX, -valveHeight / 2 + shakeY, imgWidth, imgHeight);
+    //     ctx.restore();
+    // });
+
+    // Tegn ventiler (håndtak)
+valves.forEach(v => {
+  const x = v.x - camera.x;
+  const y = v.y - camera.y;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(v.rotation);
+
+  const lastPressure = v.pressure[v.pressure.length - 1];
+
+  
+  let shakeX = 0;
+  let shakeY = 0;
+
+  if (gameOver && v.exploding) {
+    // Øk størrelse dramatisk
+    v.scale *= 1.2; // vokser over tid
+    v.scale = Math.min(v.scale, 50); // maks størrelse
+    v.pressure[v.pressure.length - 1] = -100;
+
+    if (v.scale == 50) {
+      gameReallyOver = true;
+    }
+  } 
+  else if (lastPressure > 70) {
+    shakeX = (Math.random() - 0.5) * (lastPressure - 70) * 0.2;
+    shakeY = (Math.random() - 0.5) * (lastPressure - 70) * 0.2;
+  }
+  
+
+  const imgWidth = 65 * v.scale * (canvas.width/1000);
+  const imgHeight = 65 * v.scale * (canvas.height/600);
+
+  ctx.drawImage(handle, -imgWidth / 2 * canvasSize + shakeX, -imgHeight / 2 * canvasSize + shakeY, imgWidth * canvasSize, imgHeight * canvasSize);
+  ctx.restore();
+});
+
+
+
+    
+    const rovX = canvas.width / 2 * canvasSize; //senter ROV 
+    const rovY = canvas.height / 2 * canvasSize;  //burde ha   + 50   her men bommer på ventiler da
+    const clawRX = rovX + armR.x + 40 * canvasSize;  //senter klo
+    const clawRY = rovY + armR.y;
+    clawLX = rovX + armL.x - 40 * canvasSize;  //senter klo
+    clawLY = rovY + armL.y;
+
+    //tegn klo
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 8 * canvasSize;
+    ctx.beginPath();
+    //Høyre
+    ctx.moveTo(rovX + 40 * canvasSize, rovY);
+    ctx.lineTo(clawRX, clawRY);
+    ctx.lineWidth = 6 * canvasSize;
+    ctx.moveTo(clawRX - clawLen, clawRY - clawLen);
+    ctx.lineTo(clawRX, clawRY);
+    ctx.lineTo(clawRX + clawLen, clawRY - clawLen);
+    //venstre
+    ctx.moveTo(rovX - 40 * canvasSize, rovY);
+    ctx.lineTo(clawLX, clawLY);
+    ctx.lineWidth = 6 * canvasSize;
+    ctx.moveTo(clawLX - clawLen, clawLY - clawLen);
+    ctx.lineTo(clawLX, clawLY);
+    ctx.lineTo(clawLX + clawLen, clawLY - clawLen);
+    ctx.stroke();
+
+    //tegn gripere på klo
+    //høyre
+    if (keys[" "]) {
+        clawROpen = Math.max(0.1, clawROpen - 0.04); // lukk (smooth)
+    } else {
+        clawROpen = Math.min(1, clawROpen + 0.04); // åpne (smooth)
+    }
+
+    //venstre
+    if (keys["g"]) {
+        clawLOpen = Math.max(0.1, clawLOpen - 0.02); // lukk (smooth)
+    } else if (keys["r"]) {
+        clawLOpen = Math.min(1, clawLOpen + 0.02); // åpne (smooth)
+    }
+
+    //høyre
+    const angleR = clawROpen * Math.PI/2;
+    ctx.strokeStyle = "yellow";
+    ctx.lineWidth = 6 * canvasSize;
+    ctx.beginPath();
+    ctx.moveTo(clawRX - clawLen, clawRY -  clawLen);
+    ctx.lineTo(clawRX - Math.sin(angleR) * 2 * clawLen, clawRY - 2 * clawLen);
+    ctx.moveTo(clawRX + clawLen, clawRY - clawLen);
+    ctx.lineTo(clawRX + Math.sin(angleR) * 2 * clawLen, clawRY - 2 * clawLen);
+    ctx.stroke();
+
+    //venstre
+    const angleL = clawLOpen * Math.PI/2;
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 6 * canvasSize;
+    ctx.beginPath();
+    ctx.moveTo(clawLX - clawLen, clawLY -  clawLen);
+    ctx.lineTo(clawLX - Math.sin(angleL) * 2 * clawLen, clawLY - 2 * clawLen);
+    ctx.moveTo(clawLX + clawLen, clawLY - clawLen);
+    ctx.lineTo(clawLX + Math.sin(angleL) * 2 * clawLen, clawLY - 2 * clawLen);
+    ctx.stroke();
+
+    //tegn ROV
+    ctx.fillStyle = "white";
+    //ctx.fillRect(rovX - 10, rovY - 10, 20, 20);
+    ctx.drawImage(rovIm, rovX - rovSize/2 * canvasSize, rovY - rovSize/2 * canvasSize, rovSize * canvasSize, rovSize * canvasSize);
+
+}
+
+
+
+// function drawGraphs() {
+//   valves.forEach((v, i) => {
+//     const g = document.getElementById("graph" + i).getContext("2d");
+//     g.clearRect(0, 0, 250, 100);
+//     g.strokeStyle = "lime";
+//     g.beginPath();
+//     v.pressure.forEach((p, j) => {
+//       const x = j;
+//       const y = 100 - p;
+//       if (j === 0) g.moveTo(x, y);
+//       else g.lineTo(x, y);
+//     });
+//     g.stroke();
+//   });
+// }
+
+function drawGraphs() {
+  valves.forEach((v, i) => {
+    const canvas = document.getElementById("graph" + i);
+    const g = canvas.getContext("2d");
+    g.clearRect(0, 0, 250, 100);
+
+    // Tegn grønn sone
+    const minY = 100 - 70;
+    const maxY = 100 - 40;
+    g.fillStyle = "rgba(0, 255, 0, 0.2)";
+    g.fillRect(0, minY, 250, maxY - minY);
+
+    // Sjekk om trykket er utenfor sonen
+    const outOfRange = v.pressure.some(p => p < 30 || p > 80);
+
+    // Blink rødt hvis utenfor
+    if (outOfRange) {
+      canvas.style.animation = "blinkRed 0.5s steps(1) infinite";
+    } else {
+      canvas.style.animation = "none";
+    }
+
+    // Tegn trykk-kurven
+    g.strokeStyle = "lime";
+    g.beginPath();
+    v.pressure.forEach((p, j) => {
+      const x = j * 250/400;  // hastighet graf
+      const y = 100 - p;
+      if (j === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    });
+    g.stroke();
+  });
+}
+
+
+function addNoise(ctx, width, height) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const rand = (Math.random() - 0.5) * 50;
+    pixels[i] += rand;     // Rød
+    pixels[i+1] += rand;   // Grønn
+    pixels[i+2] += rand;   // Blå
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function addGlitch(ctx, width, height) {
+  const y = Math.random() * height;
+  const glitchHeight = Math.random() * 20;
+  const glitchWidth = Math.random() * width;
+
+  ctx.drawImage(ctx.canvas, 0, y, glitchWidth, glitchHeight, 10, y + 2, glitchWidth, glitchHeight);
+}
+
+function drawStatic(ctx, width, height) {
+  for (let i = 0; i < 10; i++) {
+    const y = Math.random() * height;
+    ctx.fillStyle = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`;
+    ctx.fillRect(0, y, width, 2);
+  }
+}
+
+const bubbles = [];
+
+//lag bobler
+function createRandBubble() {
+  bubbles.push({
+    x: Math.random() * canvas.width,
+    y: canvas.height + 10,
+    radius: Math.random() * 5 + 2,
+    speed: Math.random() * 1 + 0.5,
+    drift: (Math.random() - 0.5) * 0.5,
+    opacity: Math.random() * 0.5 + 0.5
+  });
+}
+
+function createValveBubble(pressure, posX, posY) {
+    if (pressure + 50 < Math.random()*100){
+        bubbles.push({
+            x: posX + Math.random() * 20 - 10 ,
+            y: posY + Math.random() * 20 - 10 ,
+            radius: Math.random() * 5 + 2,
+            speed: Math.random() * 1 + 0.5,
+            drift: (Math.random() - 0.5) * 0.5,
+            opacity: Math.random() * 0.5 + 0.5
+        });
+        gassLekasje += 2;
+    }
+
+}
+
+
+function updateBubbles(ctx) {
+    // Oppdater og tegn bobler
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    b.y -= b.speed;
+    b.x += b.drift;
+
+    ctx.beginPath();
+    ctx.arc(b.x - camera.x, b.y - camera.y, b.radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity})`;
+    ctx.fill();
+  }
+
+  // Fjern bobler som er over toppen
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    if (bubbles[i].y + bubbles[i].radius < 0) {
+      bubbles.splice(i, 1);
+    }
+  }
+}
+
+const konkursData = [];
+
+
+function oppdaterØkonomi() {
+    // Øk fortjeneste litt (simuler jevn inntjening)
+    fortjeneste += 1 + (Math.random() - 0.5)*5;
+
+    // Beregn økonomisk helsetilstand
+    const balanse = fortjeneste - gassLekasje;
+
+    konkursData.push(balanse)
+    if (konkursData.length > 500) konkursData.shift();
+    
+    // Send verdien til en graf
+    drawEconomicGraph();
+
+    if (balanse < -500) {
+        gameReallyOver = true;
+    }
+
+}
+
+
+function drawEconomicGraph() {
+  const canvas = document.getElementById("økonomigraf");
+  const g = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+
+  g.clearRect(0, 0, width, height);
+
+  // Finn min og maks balanse for skalering
+  const minBalanse = Math.min(...konkursData, 0); // inkluder 0 for å sikre at null-linjen alltid er med
+  const maxBalanse = Math.max(...konkursData, 0);
+  const range = maxBalanse - minBalanse || 1;
+
+  // Beregn y-posisjon for null-linje
+  const nullY = height - ((0 - minBalanse) / range) * height;
+
+  // Tegn horisontal null-linje
+  g.strokeStyle = "gray";
+  g.beginPath();
+  g.moveTo(0, nullY);
+  g.lineTo(width, nullY);
+  g.stroke();
+
+  // Tegn grafen med fargeendring ved negativ balanse
+  for (let i = 1; i < konkursData.length; i++) {
+    const prevX = ((i - 1) / konkursData.length) * width;
+    const prevY = height - ((konkursData[i - 1] - minBalanse) / range) * height;
+
+    const currX = (i / konkursData.length) * width;
+    const currY = height - ((konkursData[i] - minBalanse) / range) * height;
+
+    // Velg farge basert på nåværende balanse
+    const farge = konkursData[i] < 0 ? "red" : "lime";
+    if (farge == "red") {
+      canvas.style.animation = "blinkRed 0.5s steps(1) infinite";
+    } else {
+      canvas.style.animation = "none";
+    }
+    g.strokeStyle = farge;
+
+    g.beginPath();
+    g.moveTo(prevX, prevY);
+    g.lineTo(currX, currY);
+    g.stroke();
+  }
+}
+
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 80px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+}
+
+
+function startTrend() {
+  const tilfeldigIndex = Math.floor(Math.random() * valves.length);
+  const valgtVentil = valves[tilfeldigIndex];
+  valgtVentil.trend = Math.random() < 0.5 ? -1 : 1;
+  
+}
+
+
+let startTid = Date.now();
+
+function oppdaterTimer() {
+  const nå = Date.now();
+  const sekunder = Math.floor((nå - startTid) / 1000);
+  const minutter = Math.floor(sekunder / 60);
+  const resterendeSekunder = sekunder % 60;
+
+  current = 2 + sekunder/100;
+
+  const formatertTid = 
+    String(minutter).padStart(2, '0') + ':' + 
+    String(resterendeSekunder).padStart(2, '0');
+
+  if (!gameOver) {
+    document.getElementById('survivalTimer').textContent = formatertTid;
+  }
+}
+
+setInterval(oppdaterTimer, 1000);
+
+
+function skalerSpill() {
+  const container = document.getElementById('spillskjerm');
+  const skjermbredde = window.innerWidth;
+  const skjermhøyde = window.innerHeight;
+
+  const ønsketBredde = 2124; // bredden du har designet for
+  const ønsketHøyde = 1060;   // høyden du har designet for
+
+  const skalaX = skjermbredde / ønsketBredde;
+  const skalaY = skjermhøyde / ønsketHøyde;
+  const skala = Math.min(skalaX, skalaY);
+
+  container.style.scale = skala;
+}
+
+
+
+function loop() {
+
+
+
+    update();
+    draw();
+    drawGraphs();
+    
+    if (gameReallyOver) {
+      drawGameOver()
+      createRandBubble();
+      updateBubbles(ctx);
+      addGlitch(ctx, canvas.width, canvas.height)
+      drawStatic(ctx, canvas.width, canvas.height)
+      addGlitch(ctx, canvas.width, canvas.height)
+      drawStatic(ctx, canvas.width, canvas.height)
+      addGlitch(ctx, canvas.width, canvas.height)
+      drawStatic(ctx, canvas.width, canvas.height)
+      addGlitch(ctx, canvas.width, canvas.height)
+      drawStatic(ctx, canvas.width, canvas.height)
+      addGlitch(ctx, canvas.width, canvas.height)
+      drawStatic(ctx, canvas.width, canvas.height)
+      createRandBubble();
+    }
+
+    // if (Math.random() < 0.01) {
+    //     addNoise(ctx, canvas.width, canvas.height);
+    // }
+
+    if (Math.random() < 0.3) {
+        addGlitch(ctx, canvas.width, canvas.height);
+    }
+
+    if (Math.random() < 0.05) {
+        drawStatic(ctx, canvas.width, canvas.height);
+    }
+
+    if (Math.random() < 0.005) createRandBubble(); // Lag nye bobler av og til
+    updateBubbles(ctx); // Tegn og oppdater boblene
+
+    if (Math.random() < 0.002) startTrend();  //DIFFICULTY (STANDARD IS 0.002, LOWER FOR EASIER)
+
+    oppdaterØkonomi();
+
+      //Markere gripeområder
+    // gripAreas.forEach(area => {
+    //   ctx.strokeStyle = 'red';
+    //   ctx.strokeRect(area.x, area.y, area.width, area.height);
+    // });
+    requestAnimationFrame(loop);
+    skalerSpill();
+}
+
+loop();
+</script>
+</body>
+</html>
